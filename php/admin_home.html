@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Admin Home</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            margin: 0;
+            padding: 0;
+        }
+
+        .header {
+            background-color: #fff;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #333;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: center;
+            background-color: #eee;
+            padding: 10px;
+        }
+
+        .nav a {
+            margin: 0 15px;
+            text-decoration: none;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .nav a:hover {
+            color: #FF5722;
+        }
+
+        .content {
+            padding: 30px;
+            text-align: center;
+        }
+
+        .card {
+            background: white;
+            margin: 20px auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 60%;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .logout {
+            margin-top: 30px;
+        }
+
+        .logout a {
+            text-decoration: none;
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Welcome, Admin!</h1>
+    </div>
+
+    <div class="nav">
+        <a href="#">Manage Users</a>
+        <a href="#">Manage Clubs</a>
+        <a href="#">Manage Events</a>
+        <a href="#">Reports</a>
+        <a href="#">Settings</a>
+    </div>
+
+    <div class="content">
+        <div class="card">
+            <h2>Admin Dashboard</h2>
+            <p>Here you can manage users, approve events, assign club leaders, and monitor the system activities.</p>
+        </div>
+
+        <div class="logout">
+            <a href="logout.php">Logout</a>
+        </div>
+    </div>
+
+</body>
+</html>
