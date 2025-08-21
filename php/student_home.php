@@ -1,30 +1,32 @@
 <?php
 session_start();
+$conn = new mysqli("localhost", "root", "", "project");
 
-// If user is not logged in
-if (!isset($_SESSION['email'])) {
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+if (!isset($_SESSION['email']) || $_SESSION['role'] !== 'student') {
     header("Location: login.php");
     exit();
 }
 
 $email = $_SESSION['email'];
 
-// Database connection
-$conn = new mysqli("localhost", "root", "", "project"); // update credentials
+$studentQuery = $conn->prepare("SELECT fullname, email FROM users WHERE email=?");
+$studentQuery->bind_param("s", $email);
+$studentQuery->execute();
+$student = $studentQuery->get_result()->fetch_assoc();
+$studentName = $student['fullname'];
 
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
+$totalEvents = $conn->query("SELECT COUNT(*) AS total FROM events")->fetch_assoc()['total'];
+$registeredEvents = $conn->query("SELECT COUNT(*) AS reg FROM event_registrations WHERE student_email='$email'")->fetch_assoc()['reg'];
+$activeClubs = $conn->query("SELECT COUNT(*) AS clubs FROM clubs")->fetch_assoc()['clubs'];
 
-// Fetch user data
-$sql = "SELECT fullname, email, role FROM users WHERE email = ?";
-$stmt = $conn->prepare($sql);
-$stmt->bind_param("s", $email);
-$stmt->execute();
-$result = $stmt->get_result();
+$events = $conn->query("SELECT id, title, banner, start_date FROM events ORDER BY start_date ASC LIMIT 5");
 
-$user = $result->fetch_assoc();
-$stmt->close();
+$clubs = $conn->query("SELECT id, club_name FROM clubs ORDER BY created_at DESC LIMIT 4");
+
 $conn->close();
 ?>
 
@@ -32,163 +34,255 @@ $conn->close();
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Campus Clubs & Events - Student Panel</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow-x: hidden;
-        }
-
-        .top-bar {
-            background: linear-gradient(to right, #a64bf4, #3dbbff);
-            padding: 20px 0;
-            text-align: center;
-        }
-
-        .top-bar h1 {
-            color: white;
-            font-size: 2em;
-            font-weight: bold;
-        }
-
-        .navbar {
-            background-color: #111;
             display: flex;
-            justify-content: center;
-            padding: 12px 0;
+            background-color: #f8fafc;
         }
 
-        .navbar a {
+        .sidebar {
+            width: 250px;
+            background: #1e293b;
             color: white;
+            height: 100vh;
+            padding: 20px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+        }
+
+        .sidebar h2 {
+            text-align: center;
+            font-size: 22px;
+            margin-bottom: 25px;
+            color: #fff;
+        }
+
+        .sidebar a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: #cbd5e1;
             text-decoration: none;
-            margin: 0 20px;
-            font-weight: 500;
-            font-size: 1em;
+            font-size: 16px;
             transition: 0.3s;
         }
 
-        .navbar a:hover {
-            color: #00f2fe;
+        .sidebar a:hover,
+        .sidebar a.active {
+            background: #2563eb;
+            color: #fff;
         }
 
-        .hero {
-            background-image: url('https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1950&q=80');
-            background-size: cover;
-            background-position: center;
-            height: 90vh;
+        .sidebar a i {
+            margin-right: 12px;
+            font-size: 18px;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            width: 100%;
+        }
+
+        .header {
             display: flex;
-            flex-direction: column;
+            justify-content: space-between;
             align-items: center;
-            justify-content: center;
+            background: #1e293b;
+            padding: 15px 25px;
             color: white;
-            text-align: center;
-            padding: 0 20px;
+            border-radius: 10px;
         }
 
-        .hero h2 {
-            font-size: 3em;
-            font-weight: bold;
+        .header img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid #2563eb;
+        }
+
+        .logout-btn {
+            background-color: #e63946;
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        .logout-btn:hover {
+            background-color: #d62828;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-between;
+            margin: 25px 0;
+        }
+
+        .card {
+            background: white;
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            width: 30%;
+            text-align: center;
+        }
+
+        .card i {
+            font-size: 30px;
+            color: #2563eb;
             margin-bottom: 10px;
         }
 
-        .hero p {
-            font-size: 1.2em;
-        }
-
-        .profile {
-            margin: 40px auto;
-            padding: 20px;
-            max-width: 600px;
-            background: #f2f2f2;
-            border-radius: 12px;
-            box-shadow: 0 0 12px rgba(0,0,0,0.1);
-            font-size: 1.1em;
-        }
-
-        .profile-icon {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 20px;
-        }
-
-        .profile-icon img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 2px solid #4CAF50;
-            background-color: white;
-            padding: 5px;
-        }
-
-        .profile h3 {
-            margin-bottom: 15px;
-            color: #333;
-            border-bottom: 1px solid #ccc;
-            padding-bottom: 10px;
-            text-align: center;
-        }
-
-        .profile p {
-            margin: 8px 0;
-        }
-
-        .edit-btn {
-            display: block;
-            width: 100%;
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .edit-btn a {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 20px;
+        .card a {
             text-decoration: none;
-            border-radius: 6px;
+            color: #2563eb;
             font-weight: bold;
         }
 
-        .edit-btn a:hover {
-            background-color: #45a049;
+        .events, .clubs {
+            margin-top: 25px;
         }
 
-        @media (max-width: 768px) {
-            .hero h2 { font-size: 2em; }
-            .hero p { font-size: 1em; }
+        .event-slider, .club-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .event-card, .club-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            width: 220px;
+            text-align: center;
+        }
+
+        .event-card img, .club-card img {
+            width: 100%;
+            border-radius: 10px;
+            height: 120px;
+            object-fit: cover;
+        }
+
+        .btn {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 8px 15px;
+            background: #2563eb;
+            color: white;
+            border-radius: 6px;
+            text-decoration: none;
+        }
+
+        .notifications {
+            margin-top: 30px;
+        }
+
+        .notif-card {
+            background: #f1f5f9;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 5px solid #2563eb;
+            border-radius: 6px;
         }
     </style>
 </head>
 <body>
-
-    <div class="top-bar">
-        <h1>Campus Clubs & Event Management</h1>
+    
+    <div class="sidebar">
+        <h2>📚 Student Panel</h2>
+        <a href="student_home.php" class="active"><i class="fas fa-home"></i> Dashboard</a>
+        <a href="events.php"><i class="fas fa-calendar-alt"></i> Events</a>
+        <a href="clubs.php"><i class="fas fa-users"></i> Clubs</a>
+        <a href="profile.php"><i class="fas fa-user"></i> Profile</a>
+        <a href="#"><i class="fas fa-cog"></i> Settings</a>
+        <a href="#"><i class="fas fa-sign-out-alt"></i> Logout</a>
     </div>
 
-    <div class="navbar">
-        <a href="#">Home</a>
-        <a href="clubs1.html">Clubs</a>
-        <a href="CampusEvents.php">Events</a>
-        <a href="logout.php">Logout</a>
+    <div class="main-content">
+       
+        <header class="header">
+            <h1>Welcome, <?php echo htmlspecialchars($studentName); ?> 🎓</h1>
+        </header>
+
+        <section class="stats">
+            <div class="card">
+                <i class="fas fa-calendar-alt"></i>
+                <h3><?php echo $totalEvents; ?></h3>
+                <a href="events.php">Total Events</a>
+            </div>
+            <div class="card">
+                <i class="fas fa-ticket-alt"></i>
+                <h3><?php echo $registeredEvents; ?></h3>
+                <a href="events.php">Registered Events</a>
+            </div>
+            <div class="card">
+                <i class="fas fa-users"></i>
+                <h3><?php echo $activeClubs; ?></h3>
+                <a href="clubs.php">Active Clubs</a>
+            </div>
+        </section>
+
+        <section class="events">
+            <h2>🎉 Upcoming Events</h2>
+            <div class="event-slider">
+                <?php if ($events && $events->num_rows > 0) {
+                    while ($event = $events->fetch_assoc()) { ?>
+                        <div class="event-card">
+                            <img src="<?php echo $event['banner']; ?>" alt="Event">
+                            <h3><?php echo htmlspecialchars($event['title']); ?></h3>
+                            <p><?php echo date("d M, Y", strtotime($event['start_date'])); ?></p>
+                            <a href="events.php?id=<?php echo $event['id']; ?>" class="btn">View Details</a>
+                        </div>
+                    <?php }
+                } else {
+                    echo "<p>No upcoming events.</p>";
+                } ?>
+            </div>
+        </section>
+
+        <section class="clubs">
+            <h2>🔥 Featured Clubs</h2>
+            <div class="club-container">
+                <?php if ($clubs && $clubs->num_rows > 0) {
+                    while ($club = $clubs->fetch_assoc()) { ?>
+                        <div class="club-card">
+                            <img src="assets/default-club.png" alt="Club">
+                            <h3><?php echo htmlspecialchars($club['club_name']); ?></h3>
+                            <a href="club_details.php?id=<?php echo $club['id']; ?>" class="btn">Join Now</a>
+                        </div>
+                    <?php }
+                } else {
+                    echo "<p>No clubs available.</p>";
+                } ?>
+            </div>
+        </section>
+
+        <section class="notifications">
+            <h2>🔔 Notifications</h2>
+            <div class="notif-card">
+                <p>⚡ Event registration deadline is approaching!</p>
+            </div>
+            <div class="notif-card">
+                <p>🎯 Join clubs to connect with your peers!</p>
+            </div>
+        </section>
     </div>
-
-    <div class="hero">
-        <h2>Welcome to Student Dashboard</h2>
-        <p>Join. Connect. Celebrate. Lead your campus life!</p>
-    </div>
-
-    <div class="profile">
-        <div class="profile-icon">
-            <img src="<?php echo !empty($user['profile_pic']) ? 'uploads/' . $user['profile_pic'] : 'https://cdn-icons-png.flaticon.com/512/847/847969.png'; ?>" alt="Profile Icon">
-        </div>
-        <h3>Your Profile</h3>
-        <p><strong>Name:</strong> <?php echo htmlspecialchars($user['fullname']); ?></p>
-        <p><strong>Email:</strong> <?php echo htmlspecialchars($user['email']); ?></p>
-        <p><strong>Role:</strong> <?php echo htmlspecialchars($user['role']); ?></p>
-
-    </div>
-
 </body>
 </html>

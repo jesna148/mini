@@ -1,13 +1,11 @@
 <?php
 include("conn.php");
 
-// Array of students
  $students = [
    ["student2@example.com", "pass123"],
    ["student3@example.com", "pass456"]
 ];
 
-// Check connection again just in case
 if (!$conn) {
     die("Connection failed!");
 }
@@ -18,7 +16,6 @@ foreach ($students as $student) {
     $hashed_password = password_hash($plain_password, PASSWORD_DEFAULT);
     $role = "student";
 
-    // Prepare insert query
     $stmt = $conn->prepare("INSERT INTO users (email, password, role) VALUES (?, ?, ?)");
     
     if ($stmt) {

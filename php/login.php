@@ -1,3 +1,82 @@
+<?php
+session_start();
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
+
+$conn = new mysqli("localhost", "root", "", "project");
+
+if ($conn->connect_error) {
+    die("Connection failed: " . $conn->connect_error);
+}
+
+$error = "";
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $email = trim($_POST['email']);
+    $password = trim($_POST['password']);
+    $role = trim($_POST['role']);
+}
+
+   
+    $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND role = ?");
+    $stmt->bind_param("ss", $email, $role);
+    $stmt->execute();
+    $result = $stmt->get_result();
+
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+
+
+        
+    if ($password===$row['password']) {
+    
+        $_SESSION['fullname'] = $row['fullname'];
+        $_SESSION['email'] = $row['email'];
+        $_SESSION['role'] = $row['role'];
+
+        
+        echo "<script>console.log('Approval Status: " . $row['is_approved'] . "');</script>";
+
+       
+        if ($role === 'admin') {
+            echo "<script>
+                alert('Login successful! Welcome, Admin.');
+                window.location.href = 'admin_home.html';
+            </script>";
+            exit();
+        }
+
+      
+        if (isset($row['is_approved']) && (int)$row['is_approved'] === 1) {
+
+                 if ($role == 'student') {
+                echo "<script>
+                    alert('Login successful! Welcome, Student.');
+                    window.location.href = 'student_home.php';
+                </script>";
+            } elseif ($role == 'club_leader') {
+                echo "<script>
+                    alert('Login successful! Welcome, Club Leader.');
+                    window.location.href = 'club_leader_home.php';
+                </script>";
+            }
+            exit();
+        } else {
+            $error = "Your account is pending admin approval!";
+        }
+    } else {
+        $error = "Invalid email, password, or role!";
+    }
+
+
+
+    $stmt->close();
+}
+$conn->close();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,143 +84,129 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campus Login</title>
     <style>
-        body {
+       
+        * {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
-            background: url('https://images.unsplash.com/photo-1523050854058-8df90110c9f1') no-repeat center center/cover;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #6e8efb, #a777e3);
+            height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
         }
 
+        
         .login-container {
-            background: rgba(255, 255, 255, 0.95);
-            padding: 30px;
-            border-radius: 10px;
-            width: 300px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.3);
-        }
-
-        .profile-icon {
-            display: flex;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-
-        .profile-icon img {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: 2px solid #4CAF50;
             background-color: white;
-            padding: 5px;
-        }
-
-        .login-container h2 {
+            padding: 30px 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            width: 350px;
             text-align: center;
-            margin-bottom: 20px;
+            animation: fadeIn 0.8s ease-in-out;
         }
 
-        input, select, button {
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        input, select {
             width: 100%;
             padding: 10px;
-            margin: 10px 0;
-            border-radius: 5px;
             border: 1px solid #ccc;
+            border-radius: 8px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        input:focus, select:focus {
+            border-color: #6e8efb;
         }
 
         button {
-            background-color: #4CAF50;
-            color: white;
+            width: 100%;
+            padding: 10px;
+            background: #6e8efb;
             border: none;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 8px;
             cursor: pointer;
+            transition: 0.3s;
         }
 
         button:hover {
-            background-color: #45a049;
+            background: #5a75e6;
         }
 
-        .signup-link {
-            text-align: center;
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-bottom: 10px;
         }
 
-        .signup-link a {
-            color: #007BFF;
-            text-decoration: none;
+        .pending {
+            display: none;
+            color: #ff9800;
+            font-weight: bold;
+            margin-top: 10px;
         }
-
-        .signup-link a:hover {
-            text-decoration: underline;
-        }
+        
     </style>
 </head>
 <body>
 
 <div class="login-container">
-    <div class="profile-icon">
-        <img src="https://cdn-icons-png.flaticon.com/512/847/847969.png" alt="Profile Icon">
-    </div>
-    <h2>Login</h2>
-    <form action="" method="post">
-        <label for="email">Email</label>
-        <input type="email" name="email" id="email" placeholder="Email" required>
+    <h2>Campus Login</h2>
+    <?php if (!empty($error)) echo "<p class='error'>$error</p>"; ?>
+    <form method="POST" action="">
+        <div class="input-group">
+            <label>Email</label>
+            <input type="email" name="email" required>
+        </div>
 
-        <label for="password">Password</label>
-        <input type="password" name="password" id="password" placeholder="Password" required>
+        <div class="input-group">
+            <label>Password</label>
+            <input type="password" name="password" required>
+        </div>
 
-        <label for="role">Role</label>
-        <select name="role" id="role" required>
-            <option value="">Select Role</option>
-            <option value="student">Student</option>
-            <option value="club_leader">Club Leader</option>
-            <option value="admin">Admin</option>
-        </select>
+        <div class="input-group">
+            <label>Role</label>
+            <select name="role" required>
+                <option value="student">Student</option>
+                <option value="club_leader">Club Leader</option>
+                <option value="admin">Admin</option>
+            </select>
+        </div>
 
         <button type="submit">Login</button>
     </form>
-    <div class="signup-link">
-        Don't have an account? <a href="register.php">Sign Up</a>
-    </div>
+
+    <p id="pendingMsg" class="pending">Your account is pending approval!</p>
 </div>
-
-<?php
-$conn = new mysqli("localhost", "root", "", "project");
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-} else {
-    if ($_SERVER["REQUEST_METHOD"] == "POST") {
-        $email = $_POST['email'];
-        $password = $_POST['password'];
-        $role = $_POST['role'];
-
-        $stmt = $conn->prepare("SELECT * FROM users WHERE Email = ? AND Password = ? AND Role = ?");
-        $stmt->bind_param("sss", $email, $password, $role);
-        $stmt->execute();
-        $result = $stmt->get_result();
-
-        if ($result->num_rows > 0) {
-            session_start();
-            $_SESSION['email'] = $email;
-            $_SESSION['password'] = $password;
-            $_SESSION['role'] = $role;
-
-            echo "<script>
-                    alert('Login successful! Welcome, $role.');
-                    window.location.href = '" . ($role == 'student' ? 'student_home.php' : ($role == 'club_leader' ? 'club_leader_home.html' : 'admin_home.html')) . "';
-                  </script>";
-            exit();
-        } else {
-            echo "<script>alert('Invalid credentials or role!');</script>";
-        }
-
-        $stmt->close();
-    }
-}
-$conn->close();
-?>
-
 </body>
 </html>

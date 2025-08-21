@@ -7,7 +7,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = $_POST['password'];
     $role = $_POST['role'];
 
-    // Check user exists with matching role
     $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? AND role = ?");
     $stmt->bind_param("ss", $email, $role);
     $stmt->execute();
@@ -20,7 +19,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['email'] = $user['email'];
             $_SESSION['role'] = $user['role'];
 
-            // Redirect based on role
             switch ($user['role']) {
                 case 'student':
                     header("Location: student_home.html");
