@@ -42,7 +42,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
        
         if ($role === 'admin') {
             echo "<script>
-                alert('Login successful! Welcome, Admin.');
                 window.location.href = 'admin_home.html';
             </script>";
             exit();
@@ -53,13 +52,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                  if ($role == 'student') {
                 echo "<script>
-                    alert('Login successful! Welcome, Student.');
                     window.location.href = 'student_home.php';
                 </script>";
             } elseif ($role == 'club_leader') {
                 echo "<script>
-                    alert('Login successful! Welcome, Club Leader.');
-                    window.location.href = 'club_leader_home.php';
+                    window.location.href = 'club_leader_dashboard.html';
                 </script>";
             }
             exit();
@@ -69,11 +66,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     } else {
         $error = "Invalid email, password, or role!";
     }
+    
+}
 
 
 
     $stmt->close();
-}
+
 $conn->close();
 ?>
 
@@ -204,6 +203,9 @@ $conn->close();
         </div>
 
         <button type="submit">Login</button>
+        <div class="login-link">
+        Don't have an account? <a href="register.php">Register</a>
+        </div>
     </form>
 
     <p id="pendingMsg" class="pending">Your account is pending approval!</p>

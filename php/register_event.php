@@ -27,6 +27,6 @@ if ($check->num_rows > 0) {
 } else {
  
     $conn->query("INSERT INTO event_registrations(event_id, student_email) VALUES('$event_id', '$student_email')");
-    echo "<script>alert('Registration successful!'); window.location.href='events.php';</script>";
+    echo "<script>alert('Registered! Please wait for the approval.'); window.location.href='events.php';</script>";
 }
 ?>

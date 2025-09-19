@@ -136,7 +136,6 @@ $conn->close();
             <option value="" disabled selected>Select Role</option> 
             <option value="student">Student</option>
             <option value="club_leader">Club Leader</option>
-            >
         </select>
 
         <button type="submit">Sign Up</button>
